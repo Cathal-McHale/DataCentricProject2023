@@ -28,6 +28,7 @@ const pool = mysql.createPool({
 app.use(express.urlencoded({ extended: true }));
 
 const renderHTML = (title, content) => {
+  //style for pages
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -63,6 +64,7 @@ const renderHTML = (title, content) => {
 
 // Home Page
 app.get('/', (req, res) => {
+  //display homepage Links
   const content = `
     <ul>
       <li><a href="/stores">Stores</a></li>
@@ -81,14 +83,18 @@ app.get('/stores', async (req, res) => {
       <div>
         <p>ID: ${store.sid}, Location: ${store.location}, Manager ID: ${store.mgrid}</p>
         <a href="/stores/edit/${store.sid}">Edit</a>
+        
       </div>
+      
     `).join('');
-    content += '<a href="/stores/add">Add Store</a>';
+    
+    content += `<p><a href="/">Return to Home Page</a></p>`;
     res.send(renderHTML('Stores', content));
   } catch (error) {
     console.error(error);
     res.status(500).send(renderHTML('Error', 'Internal Server Error'));
   }
+  
 });
 
 // Edit Store - Display Form
@@ -137,6 +143,7 @@ app.get('/products', async (req, res) => {
       JOIN store s ON ps.sid = s.sid;
     `;
     const [products] = await pool.query(sql);
+    //output titles for product info
     let content = `
       <table>
         <thead>
@@ -180,10 +187,12 @@ app.get('/products/delete/:pid', async (req, res) => {
     const [storeRows] = await pool.query('SELECT * FROM product_store WHERE pid = ?', [pid]);
     if (storeRows.length > 0) {
       // Product is in a store and cannot be deleted
-      return res.send(renderHTML('Error', `<p>Product ${pid} is currently in stores and cannot be deleted</p>`));
+      return res.send(renderHTML('Error', `<p>Product ${pid} is currently in stores and cannot be deleted</p> br 
+      <p><a href="/products">Return to Products</a></p>`));
+      
     }
 
-    // If the product is not in any store, proceed with deletion
+    // If the product is not in any store, continue deleting
     await pool.query('DELETE FROM product WHERE pid = ?', [pid]);
     res.redirect('/products');
   } catch (error) {
@@ -197,14 +206,18 @@ app.get('/products/delete/:pid', async (req, res) => {
 app.get('/Managers', async (req, res) => {
   try {
     const managers = await mongoDAO.findAll();
+    //create map to join together
+    //creates list to show on browser
     let content = managers.map(manager => `
       <div>
         <p>ID: ${manager._id}, Name: ${manager.name}, Salary: ${manager.salary}</p>
       </div>
     `).join('');
     content += '<a href="/Managers/add">Add Manager</a>';
+    content += `<p><a href="/">Return to Home Page</a></p>`;
     res.send(renderHTML('Managers', content));
   } catch (error) {
+    //log error
     console.error(error);
     res.status(500).send(renderHTML('Error', 'Internal Server Error'));
   }
@@ -230,6 +243,7 @@ app.get('/Managers/add', (req, res) => {
 app.post('/Managers/add', async (req, res) => {
   const { id, name, salary } = req.body;
   try {
+    //insert manager into coll
     await coll.insertOne({ _id: id, name, salary });
     res.redirect('/Managers');
   } catch (error) {
